@@ -1,20 +1,15 @@
 // ==UserScript==
 // @name        Youtube Comment Cleaner (YCC)
 // @description Allows batch-deletion of Youtube comments, live chat messages and comment likes/dislikes
-// @author      Fonic <https://github.com/fonic>
+// @author      Fonic <https://github.com/fonic> (this userscript)
 // @author      Christian Prior-Mamulyan <https://github.com/cprima> (orginal script)
 // @homepage    https://github.com/fonic/Youtube-Comment-Cleaner
 // @supportURL  https://github.com/fonic/Youtube-Comment-Cleaner
 // @downloadURL https://github.com/fonic/Youtube-Comment-Cleaner/raw/main/Youtube%20Comment%20Cleaner%20%28YCC%29.user.js
 // @updateURL   https://github.com/fonic/Youtube-Comment-Cleaner/raw/main/Youtube%20Comment%20Cleaner%20%28YCC%29.user.js
 // @namespace   myactivity.google.com
-// @match       https://myactivity.google.com/page?hl=en&page=youtube_comments
-// @match       https://myactivity.google.com/page?hl=en&utm_medium=web&utm_source=youtube&page=youtube_comments
-// @match       https://myactivity.google.com/page?hl=en&page=youtube_live_chat
-// @match       https://myactivity.google.com/page?hl=en&utm_medium=web&utm_source=youtube&page=youtube_live_chat
-// @match       https://myactivity.google.com/page?hl=en&page=youtube_comment_likes
-// @match       https://myactivity.google.com/page?hl=en&utm_medium=web&utm_source=youtube&page=youtube_comment_likes
-// @version     1.0
+// @match       https://myactivity.google.com/*
+// @version     1.1
 // @grant       none
 // @run-at      context-menu
 // ==/UserScript==
@@ -47,51 +42,62 @@
  */
 
 function ensureOnCorrectActivityPage() {
-    const elementsData = [
+    // List of supported pages (NOTE: make sure to add suitable '@match'
+    // items for each of these to the script's '==UserScript==' section)
+    const supportedPages = [
         {
-            url: "https://myactivity.google.com/page?hl=en&page=youtube_comments",
-            content: "Your YouTube Comments"
+            // URL (normal account): 'https://myactivity.google.com/page?hl=en&page=youtube_comments'
+            // URL (brand account):  'https://myactivity.google.com/u/1/page?hl=en&page=youtube_comments'
+            // Title:                'Your YouTube Comments'
+            urlsw: "https://myactivity.google.com/",
+            param: "page",
+            value: "youtube_comments"
         },
         {
-            url: "https://myactivity.google.com/page?hl=en&utm_medium=web&utm_source=youtube&page=youtube_comments",
-            content: "Your YouTube Comments"
+            // URL (normal account): 'https://myactivity.google.com/page?hl=en&page=youtube_live_chat'
+            // URL (brand account):  'https://myactivity.google.com/u/1/page?hl=en&page=youtube_live_chat'
+            // Title:                'Your YouTube Live Chat Messages'
+            urlsw: "https://myactivity.google.com/",
+            param: "page",
+            value: "youtube_live_chat"
         },
         {
-            url: "https://myactivity.google.com/page?hl=en&page=youtube_live_chat",
-            content: "Your YouTube Live Chat Messages"
-        },
-        {
-            url: "https://myactivity.google.com/page?hl=en&utm_medium=web&utm_source=youtube&page=youtube_live_chat",
-            content: "Your YouTube Live Chat Messages"
-        },
-        {
-            url: "https://myactivity.google.com/page?hl=en&page=youtube_comment_likes",
-            content: "Your Likes and Dislikes on YouTube Comments"
-        },
-        {
-            url: "https://myactivity.google.com/page?hl=en&utm_medium=web&utm_source=youtube&page=youtube_comment_likes",
-            content: "Your Likes and Dislikes on YouTube Comments"
+            // URL (normal account): 'https://myactivity.google.com/page?hl=en&page=youtube_comment_likes'
+            // URL (brand account):  'https://myactivity.google.com/u/1/page?hl=en&page=youtube_comment_likes'
+            // Title:                'Your Likes and Dislikes on YouTube Comments'
+            urlsw: "https://myactivity.google.com/",
+            param: "page",
+            value: "youtube_comment_likes"
         }
     ];
 
+    // Fetch current URL, decode URL parameters
     const currentUrl = window.location.href;
-    const elementsWithClass = Array.from(document.querySelectorAll('.jPCT6'));
+    const urlParams = new URLSearchParams(window.location.search);
 
-    for (let elementData of elementsData) {
-        if (currentUrl.startsWith(elementData.url)) {
-            if (elementsWithClass.some(el => el.textContent.toLowerCase().includes(elementData.content.toLowerCase()))) {
-                console.log(`Matched URL: ${elementData.url} with content: "${elementData.content}"`);
-                return true; // Matched desired URL with corresponding content.
-            }
+    // Iterate list of supported pages and check if current page matches
+    for (const pageData of supportedPages) {
+        if (!currentUrl.startsWith(pageData.urlsw)) {
+            continue;
         }
+        if (!urlParams.has(pageData.param)) {
+            continue;
+        }
+        if (urlParams.get(pageData.param) != pageData.value) {
+            continue;
+        }
+        console.log(`[YCC] Supported page detected: URL starts with '${pageData.urlsw}', URL contains parameter '${pageData.param}' with value '${pageData.value}'`);
+        return true; // Current page is supported
     }
 
-    console.log(`You are not on a recognized page. Please navigate to 'Your YouTube Comments', 'Your YouTube Live Chat Messages' or 'Your Likes and Dislikes on YouTube Comments'.`);
+    // Current page is NOT supported
+    console.log("[YCC] Current page does not match any known supported page.");
+    alert("You are not on a supported page. Please navigate to 'Your YouTube Comments', 'Your YouTube Live Chat Messages' or 'Your Likes and Dislikes on YouTube Comments'.");
     return false;
 }
 
 async function scrollToBottom() {
-    while (!document.evaluate('//div[contains(text(), "Looks like you\'ve reached the end")]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue) {
+    while (!document.evaluate('//div[contains(text(), "Looks like you\'ve reached the end")] | //p[contains(text(), "No activity.")]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue) {
         window.scrollTo(0, document.body.scrollHeight);
         await new Promise(resolve => setTimeout(resolve, 1000));
     }
@@ -151,13 +157,15 @@ async function initiateItemDeletion() {
     if (!ensureOnCorrectActivityPage()) {
         return;
     }
+
     await scrollToBottom();
 
     const bestSelector = determineBestSelector();
     const totalItems = document.querySelectorAll(bestSelector).length;
 
     if (!totalItems) {
-        console.log("No items found for deletion.");
+        console.log("[YCC] No items found for deletion.");
+        alert("No items found for deletion.");
         return;
     }
 
@@ -166,14 +174,14 @@ async function initiateItemDeletion() {
     while (userInput !== null) {
         if (userInput.toLowerCase() === 'a') {
             await deleteItems(Infinity);
-            console.log("All items deleted.");
+            console.log("[YCC] All items deleted.");
             return;
         } else if (!isNaN(parseInt(userInput))) {
             const deleteBatchSize = parseInt(userInput);
             const remainingItems = await deleteItems(deleteBatchSize);
 
             if (!remainingItems) {
-                console.log("All items deleted.");
+                console.log("[YCC] All items deleted.");
                 return;
             }
 
@@ -183,7 +191,7 @@ async function initiateItemDeletion() {
         }
     }
 
-    console.log("Operation canceled. No further items will be deleted.");
+    console.log("[YCC] Operation canceled. No further items will be deleted.");
 }
 
 initiateItemDeletion();
