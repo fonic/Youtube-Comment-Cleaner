@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Youtube Comment Cleaner (YCC)
-// @description Allows batch-deletion of Youtube comments, live chat messages and comment likes/dislikes
+// @description Allows batch-deletion of Youtube-related activity items (comments, live chat messages, likes/dislikes, etc.)
 // @author      Fonic <https://github.com/fonic> (this userscript)
 // @author      Christian Prior-Mamulyan <https://github.com/cprima> (orginal script)
 // @homepage    https://github.com/fonic/Youtube-Comment-Cleaner
@@ -9,7 +9,7 @@
 // @updateURL   https://github.com/fonic/Youtube-Comment-Cleaner/raw/main/Youtube%20Comment%20Cleaner%20%28YCC%29.user.js
 // @namespace   myactivity.google.com
 // @match       https://myactivity.google.com/*
-// @version     1.1
+// @version     1.2
 // @grant       none
 // @run-at      context-menu
 // ==/UserScript==
@@ -46,28 +46,54 @@ function ensureOnCorrectActivityPage() {
     // items for each of these to the script's '==UserScript==' section)
     const supportedPages = [
         {
-            // URL (normal account): 'https://myactivity.google.com/page?hl=en&page=youtube_comments'
-            // URL (brand account):  'https://myactivity.google.com/u/1/page?hl=en&page=youtube_comments'
-            // Title:                'Your YouTube Comments'
-            urlsw: "https://myactivity.google.com/",
-            param: "page",
-            value: "youtube_comments"
+            // URL: https://myactivity.google.com/page?hl=en&page=youtube_subscriptions
+            urlsw: 'https://myactivity.google.com/',
+            param: 'page',
+            value: 'youtube_subscriptions',
+            title: 'Your YouTube channel subscriptions'
         },
         {
-            // URL (normal account): 'https://myactivity.google.com/page?hl=en&page=youtube_live_chat'
-            // URL (brand account):  'https://myactivity.google.com/u/1/page?hl=en&page=youtube_live_chat'
-            // Title:                'Your YouTube Live Chat Messages'
-            urlsw: "https://myactivity.google.com/",
-            param: "page",
-            value: "youtube_live_chat"
+            // URL (normal account): https://myactivity.google.com/page?hl=en&page=youtube_comments
+            // URL (brand account):  https://myactivity.google.com/u/1/page?hl=en&page=youtube_comments
+            urlsw: 'https://myactivity.google.com/',
+            param: 'page',
+            value: 'youtube_comments',
+            title: 'Your YouTube Comments'
         },
         {
-            // URL (normal account): 'https://myactivity.google.com/page?hl=en&page=youtube_comment_likes'
-            // URL (brand account):  'https://myactivity.google.com/u/1/page?hl=en&page=youtube_comment_likes'
-            // Title:                'Your Likes and Dislikes on YouTube Comments'
-            urlsw: "https://myactivity.google.com/",
-            param: "page",
-            value: "youtube_comment_likes"
+            // URL: https://myactivity.google.com/page?hl=en&page=youtube_comment_likes
+            urlsw: 'https://myactivity.google.com/',
+            param: 'page',
+            value: 'youtube_comment_likes',
+            title: 'Your Likes and Dislikes on YouTube Comments'
+        },
+        {
+            // URL: https://myactivity.google.com/page?hl=en&page=youtube_posts_activity
+            urlsw: 'https://myactivity.google.com/',
+            param: 'page',
+            value: 'youtube_posts_activity',
+            title: 'Your activity on YouTube posts'
+        },
+        {
+            // URL: https://myactivity.google.com/page?hl=en&page=youtube_live_chat
+            urlsw: 'https://myactivity.google.com/',
+            param: 'page',
+            value: 'youtube_live_chat',
+            title: 'Your YouTube Live Chat Messages'
+        },
+        {
+            // URL: https://myactivity.google.com/page?hl=en&page=youtube_likes
+            urlsw: 'https://myactivity.google.com/',
+            param: 'page',
+            value: 'youtube_likes',
+            title: 'Your likes and dislikes on YouTube videos'
+        },
+        {
+            // URL: https://myactivity.google.com/page?hl=en&page=youtube_commerce_acquisitions
+            urlsw: 'https://myactivity.google.com/',
+            param: 'page',
+            value: 'youtube_commerce_acquisitions',
+            title: 'YouTube Purchases'
         }
     ];
 
@@ -91,8 +117,8 @@ function ensureOnCorrectActivityPage() {
     }
 
     // Current page is NOT supported
-    console.log("[YCC] Current page does not match any known supported page.");
-    alert("You are not on a supported page. Please navigate to 'Your YouTube Comments', 'Your YouTube Live Chat Messages' or 'Your Likes and Dislikes on YouTube Comments'.");
+    console.log('[YCC] Current page does not match any known supported page.');
+    alert('You are currently not on a supported activity page. Please navigate to one of the following supported activity pages:\n\n' + supportedPages.map(page => page.title).join('\n'));
     return false;
 }
 
@@ -164,8 +190,8 @@ async function initiateItemDeletion() {
     const totalItems = document.querySelectorAll(bestSelector).length;
 
     if (!totalItems) {
-        console.log("[YCC] No items found for deletion.");
-        alert("No items found for deletion.");
+        console.log('[YCC] No items found for deletion.');
+        alert('No items found for deletion.');
         return;
     }
 
@@ -174,24 +200,24 @@ async function initiateItemDeletion() {
     while (userInput !== null) {
         if (userInput.toLowerCase() === 'a') {
             await deleteItems(Infinity);
-            console.log("[YCC] All items deleted.");
+            console.log('[YCC] All items deleted.');
             return;
         } else if (!isNaN(parseInt(userInput))) {
             const deleteBatchSize = parseInt(userInput);
             const remainingItems = await deleteItems(deleteBatchSize);
 
             if (!remainingItems) {
-                console.log("[YCC] All items deleted.");
+                console.log('[YCC] All items deleted.');
                 return;
             }
 
             userInput = prompt(`${remainingItems} items remaining. Enter 'a' to delete all remaining items or input a number to delete that many items. Press 'Cancel' at any time to stop the script:`);
         } else {
-            userInput = prompt("Invalid input. Please enter 'a' or a number:");
+            userInput = prompt('Invalid input. Please enter \'a\' or a number:');
         }
     }
 
-    console.log("[YCC] Operation canceled. No further items will be deleted.");
+    console.log('[YCC] Operation canceled. No further items will be deleted.');
 }
 
 initiateItemDeletion();

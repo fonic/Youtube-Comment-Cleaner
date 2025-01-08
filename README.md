@@ -1,5 +1,6 @@
 # Youtube Comment Cleaner (YCC)
-TamperMonkey userscript that allows batch-deletion of Youtube comments, live chat messages and comment likes/dislikes. Based on [cprima's original script](https://gist.github.com/cprima/2f7ea8e353c18a666506021c85e9773d).
+TamperMonkey userscript that allows batch-deletion of Youtube-related activity items (comments, live chat messages, likes/dislikes, etc.).
+Based on [cprima's original script](https://gist.github.com/cprima/2f7ea8e353c18a666506021c85e9773d).
 
 ## Donations
 I'm striving to become a full-time developer of [Free and open-source software (FOSS)](https://en.wikipedia.org/wiki/Free_and_open-source_software). Donations help me achieve that goal and are highly appreciated.
@@ -16,7 +17,14 @@ I'm striving to become a full-time developer of [Free and open-source software (
 
 1. Sign in to your Google account
 
-2. Browse to [Your YouTube Comments](https://myactivity.google.com/page?hl=en&page=youtube_comments), [Your YouTube Live Chat Messages](https://myactivity.google.com/page?hl=en&page=youtube_live_chat) or [Your Likes and Dislikes on YouTube Comments](https://myactivity.google.com/page?hl=en&page=youtube_comment_likes)
+2. Navigate to one of the following supported activity pages:
+   - [Your YouTube channel subscriptions](https://myactivity.google.com/page?hl=en&page=youtube_subscriptions)
+   - [Your YouTube Comments](https://myactivity.google.com/page?hl=en&page=youtube_comments)
+   - [Your Likes and Dislikes on YouTube Comments](https://myactivity.google.com/page?hl=en&page=youtube_comment_likes)
+   - [Your activity on YouTube posts](https://myactivity.google.com/page?hl=en&page=youtube_posts_activity)
+   - [Your YouTube Live Chat Messages](https://myactivity.google.com/page?hl=en&page=youtube_live_chat)
+   - [Your likes and dislikes on YouTube videos](https://myactivity.google.com/page?hl=en&page=youtube_likes)
+   - [YouTube Purchases](https://myactivity.google.com/page?hl=en&page=youtube_commerce_acquisitions)
 
 3. Right click (to bring up context menu) -> TamperMonkey -> Youtube Comment Cleaner (YCC)
 
@@ -24,4 +32,4 @@ I'm striving to become a full-time developer of [Free and open-source software (
 
 ##
 
-_Last updated: 12/21/23_
+_Last updated: 01/08/25_
