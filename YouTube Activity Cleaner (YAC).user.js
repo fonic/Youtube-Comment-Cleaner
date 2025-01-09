@@ -1,15 +1,15 @@
 // ==UserScript==
-// @name        Youtube Comment Cleaner (YCC)
-// @description Allows batch-deletion of Youtube-related activity items (comments, live chat messages, likes/dislikes, etc.)
-// @author      Fonic <https://github.com/fonic> (this userscript)
+// @name        YouTube Activity Cleaner (YAC)
+// @description Allows batch-deletion of past YouTube activity (comments, live chat messages, likes/dislikes, etc.)
+// @author      Fonic <https://github.com/fonic> (this fork)
 // @author      Christian Prior-Mamulyan <https://github.com/cprima> (orginal script)
-// @homepage    https://github.com/fonic/Youtube-Comment-Cleaner
-// @supportURL  https://github.com/fonic/Youtube-Comment-Cleaner
-// @downloadURL https://github.com/fonic/Youtube-Comment-Cleaner/raw/main/Youtube%20Comment%20Cleaner%20%28YCC%29.user.js
-// @updateURL   https://github.com/fonic/Youtube-Comment-Cleaner/raw/main/Youtube%20Comment%20Cleaner%20%28YCC%29.user.js
+// @homepage    https://github.com/fonic/YouTube-Activity-Cleaner
+// @supportURL  https://github.com/fonic/YouTube-Activity-Cleaner
+// @downloadURL https://github.com/fonic/YouTube-Activity-Cleaner/raw/main/YouTube%20Activity%20Cleaner%20%28YAC%29.user.js
+// @updateURL   https://github.com/fonic/YouTube-Activity-Cleaner/raw/main/YouTube%20Activity%20Cleaner%20%28YAC%29.user.js
 // @namespace   myactivity.google.com
 // @match       https://myactivity.google.com/*
-// @version     1.2
+// @version     1.3
 // @grant       none
 // @run-at      context-menu
 // ==/UserScript==
@@ -43,15 +43,9 @@
 
 function ensureOnCorrectActivityPage() {
     // List of supported pages (NOTE: make sure to add suitable '@match'
-    // items for each of these to the script's '==UserScript==' section)
+    // lines for each of these to the script's '==UserScript==' section;
+    // ordered from most interesting/useful to least interesting/useful)
     const supportedPages = [
-        {
-            // URL: https://myactivity.google.com/page?hl=en&page=youtube_subscriptions
-            urlsw: 'https://myactivity.google.com/',
-            param: 'page',
-            value: 'youtube_subscriptions',
-            title: 'Your YouTube channel subscriptions'
-        },
         {
             // URL (normal account): https://myactivity.google.com/page?hl=en&page=youtube_comments
             // URL (brand account):  https://myactivity.google.com/u/1/page?hl=en&page=youtube_comments
@@ -61,20 +55,6 @@ function ensureOnCorrectActivityPage() {
             title: 'Your YouTube Comments'
         },
         {
-            // URL: https://myactivity.google.com/page?hl=en&page=youtube_comment_likes
-            urlsw: 'https://myactivity.google.com/',
-            param: 'page',
-            value: 'youtube_comment_likes',
-            title: 'Your Likes and Dislikes on YouTube Comments'
-        },
-        {
-            // URL: https://myactivity.google.com/page?hl=en&page=youtube_posts_activity
-            urlsw: 'https://myactivity.google.com/',
-            param: 'page',
-            value: 'youtube_posts_activity',
-            title: 'Your activity on YouTube posts'
-        },
-        {
             // URL: https://myactivity.google.com/page?hl=en&page=youtube_live_chat
             urlsw: 'https://myactivity.google.com/',
             param: 'page',
@@ -82,11 +62,25 @@ function ensureOnCorrectActivityPage() {
             title: 'Your YouTube Live Chat Messages'
         },
         {
+            // URL: https://myactivity.google.com/page?hl=en&page=youtube_comment_likes
+            urlsw: 'https://myactivity.google.com/',
+            param: 'page',
+            value: 'youtube_comment_likes',
+            title: 'Your Likes and Dislikes on YouTube Comments'
+        },
+        {
             // URL: https://myactivity.google.com/page?hl=en&page=youtube_likes
             urlsw: 'https://myactivity.google.com/',
             param: 'page',
             value: 'youtube_likes',
-            title: 'Your likes and dislikes on YouTube videos'
+            title: 'Your Likes and Dislikes on YouTube Videos'
+        },
+        {
+            // URL: https://myactivity.google.com/page?hl=en&page=youtube_posts_activity
+            urlsw: 'https://myactivity.google.com/',
+            param: 'page',
+            value: 'youtube_posts_activity',
+            title: 'Your Activity on YouTube Posts'
         },
         {
             // URL: https://myactivity.google.com/page?hl=en&page=youtube_commerce_acquisitions
@@ -94,16 +88,23 @@ function ensureOnCorrectActivityPage() {
             param: 'page',
             value: 'youtube_commerce_acquisitions',
             title: 'YouTube Purchases'
+        },
+        {
+            // URL: https://myactivity.google.com/page?hl=en&page=youtube_subscriptions
+            urlsw: 'https://myactivity.google.com/',
+            param: 'page',
+            value: 'youtube_subscriptions',
+            title: 'Your YouTube Channel Subscriptions'
         }
     ];
 
     // Fetch current URL, decode URL parameters
-    const currentUrl = window.location.href;
+    const currentURL = window.location.href;
     const urlParams = new URLSearchParams(window.location.search);
 
     // Iterate list of supported pages and check if current page matches
     for (const pageData of supportedPages) {
-        if (!currentUrl.startsWith(pageData.urlsw)) {
+        if (!currentURL.startsWith(pageData.urlsw)) {
             continue;
         }
         if (!urlParams.has(pageData.param)) {
@@ -112,12 +113,12 @@ function ensureOnCorrectActivityPage() {
         if (urlParams.get(pageData.param) != pageData.value) {
             continue;
         }
-        console.log(`[YCC] Supported page detected: URL starts with '${pageData.urlsw}', URL contains parameter '${pageData.param}' with value '${pageData.value}'`);
+        console.log(`[YAC] Supported page detected: URL starts with '${pageData.urlsw}', URL contains parameter '${pageData.param}' with value '${pageData.value}'`);
         return true; // Current page is supported
     }
 
     // Current page is NOT supported
-    console.log('[YCC] Current page does not match any known supported page.');
+    console.log(`[YAC] Current page does not match any known supported page: ${currentURL}`);
     alert('You are currently not on a supported activity page. Please navigate to one of the following supported activity pages:\n\n' + supportedPages.map(page => page.title).join('\n'));
     return false;
 }
@@ -166,14 +167,14 @@ async function deleteItems(deleteBatchSize) {
             behavior: 'smooth',
             block: 'center'
         });
-
         await new Promise(resolve => setTimeout(resolve, 1000)); // Give a moment for the scroll to finish
 
-        highlightElement(btn);
+        highlightElement(btn);                                   // Highlight delete button (will last for 1s)
         await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for 2s for the highlight to be visible
-        btn.click();
+
+        btn.click();                                             // Click delete button
         count++;
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        await new Promise(resolve => setTimeout(resolve, 1500)); // Wait for deletion to be performed/completed
     }
 
     return deleteButtons.length; // Return the number of remaining items
@@ -190,7 +191,7 @@ async function initiateItemDeletion() {
     const totalItems = document.querySelectorAll(bestSelector).length;
 
     if (!totalItems) {
-        console.log('[YCC] No items found for deletion.');
+        console.log('[YAC] No items found for deletion.');
         alert('No items found for deletion.');
         return;
     }
@@ -200,14 +201,14 @@ async function initiateItemDeletion() {
     while (userInput !== null) {
         if (userInput.toLowerCase() === 'a') {
             await deleteItems(Infinity);
-            console.log('[YCC] All items deleted.');
+            console.log('[YAC] All items deleted.');
             return;
         } else if (!isNaN(parseInt(userInput))) {
             const deleteBatchSize = parseInt(userInput);
             const remainingItems = await deleteItems(deleteBatchSize);
 
             if (!remainingItems) {
-                console.log('[YCC] All items deleted.');
+                console.log('[YAC] All items deleted.');
                 return;
             }
 
@@ -217,7 +218,7 @@ async function initiateItemDeletion() {
         }
     }
 
-    console.log('[YCC] Operation canceled. No further items will be deleted.');
+    console.log('[YAC] Operation canceled. No further items will be deleted.');
 }
 
 initiateItemDeletion();
