@@ -9,7 +9,7 @@
 // @updateURL   https://github.com/fonic/YouTube-Activity-Cleaner/raw/main/YouTube%20Activity%20Cleaner%20%28YAC%29.user.js
 // @namespace   myactivity.google.com
 // @match       https://myactivity.google.com/*
-// @version     1.3
+// @version     1.4
 // @grant       none
 // @run-at      context-menu
 // ==/UserScript==
@@ -41,7 +41,7 @@
  * Use cautiously. Deletion is irreversible.
  */
 
-function ensureOnCorrectActivityPage() {
+function checkIfPageIsSupported() {
     // List of supported pages (NOTE: make sure to add suitable '@match'
     // lines for each of these to the script's '==UserScript==' section;
     // ordered from most interesting/useful to least interesting/useful)
@@ -49,52 +49,52 @@ function ensureOnCorrectActivityPage() {
         {
             // URL (normal account): https://myactivity.google.com/page?hl=en&page=youtube_comments
             // URL (brand account):  https://myactivity.google.com/u/1/page?hl=en&page=youtube_comments
+            title: 'Your YouTube Comments',
             urlsw: 'https://myactivity.google.com/',
             param: 'page',
-            value: 'youtube_comments',
-            title: 'Your YouTube Comments'
+            value: 'youtube_comments'
         },
         {
             // URL: https://myactivity.google.com/page?hl=en&page=youtube_live_chat
+            title: 'Your YouTube Live Chat Messages',
             urlsw: 'https://myactivity.google.com/',
             param: 'page',
-            value: 'youtube_live_chat',
-            title: 'Your YouTube Live Chat Messages'
+            value: 'youtube_live_chat'
         },
         {
             // URL: https://myactivity.google.com/page?hl=en&page=youtube_comment_likes
+            title: 'Your Likes and Dislikes on YouTube Comments',
             urlsw: 'https://myactivity.google.com/',
             param: 'page',
-            value: 'youtube_comment_likes',
-            title: 'Your Likes and Dislikes on YouTube Comments'
+            value: 'youtube_comment_likes'
         },
         {
             // URL: https://myactivity.google.com/page?hl=en&page=youtube_likes
+            title: 'Your Likes and Dislikes on YouTube Videos',
             urlsw: 'https://myactivity.google.com/',
             param: 'page',
-            value: 'youtube_likes',
-            title: 'Your Likes and Dislikes on YouTube Videos'
+            value: 'youtube_likes'
         },
         {
             // URL: https://myactivity.google.com/page?hl=en&page=youtube_posts_activity
+            title: 'Your Activity on YouTube Posts',
             urlsw: 'https://myactivity.google.com/',
             param: 'page',
-            value: 'youtube_posts_activity',
-            title: 'Your Activity on YouTube Posts'
+            value: 'youtube_posts_activity'
         },
         {
             // URL: https://myactivity.google.com/page?hl=en&page=youtube_commerce_acquisitions
+            title: 'YouTube Purchases',
             urlsw: 'https://myactivity.google.com/',
             param: 'page',
-            value: 'youtube_commerce_acquisitions',
-            title: 'YouTube Purchases'
+            value: 'youtube_commerce_acquisitions'
         },
         {
             // URL: https://myactivity.google.com/page?hl=en&page=youtube_subscriptions
+            title: 'Your YouTube Channel Subscriptions',
             urlsw: 'https://myactivity.google.com/',
             param: 'page',
-            value: 'youtube_subscriptions',
-            title: 'Your YouTube Channel Subscriptions'
+            value: 'youtube_subscriptions'
         }
     ];
 
@@ -113,28 +113,19 @@ function ensureOnCorrectActivityPage() {
         if (urlParams.get(pageData.param) != pageData.value) {
             continue;
         }
-        console.log(`[YAC] Supported page detected: URL starts with '${pageData.urlsw}', URL contains parameter '${pageData.param}' with value '${pageData.value}'`);
-        return true; // Current page is supported
+        // Current page IS supported
+        console.log(`[YAC] Supported page detected: URL starts with '${pageData.urlsw}', URL contains parameter '${pageData.param}' with value '${pageData.value}' -> page is '${pageData.title}'`);
+        return true;
     }
 
     // Current page is NOT supported
     console.log(`[YAC] Current page does not match any known supported page: ${currentURL}`);
-    alert('You are currently not on a supported activity page. Please navigate to one of the following supported activity pages:\n\n' + supportedPages.map(page => page.title).join('\n'));
+    alert('You are currently not on a supported activity page.\nPlease navigate to one of the following activity pages:\n\n' + supportedPages.map(page => page.title).join('\n'));
     return false;
 }
 
-async function scrollToBottom() {
-    while (!document.evaluate('//div[contains(text(), "Looks like you\'ve reached the end")] | //p[contains(text(), "No activity.")]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue) {
-        window.scrollTo(0, document.body.scrollHeight);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-}
-
-function highlightElement(el) {
-    el.style.backgroundColor = '#ffcccb'; // Light red
-    setTimeout(() => {
-        el.style.backgroundColor = ''; // Reset background color after 1s
-    }, 1000);
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 function determineBestSelector() {
@@ -144,81 +135,104 @@ function determineBestSelector() {
         '[jscontroller="soHxf"]'
     ];
 
-    // Get the selector that matches the least amount of elements (more specific)
+    // Return the selector that matches the least amount of elements (i.e.
+    // which is the most specific)
     SELECTORS.sort((a, b) => document.querySelectorAll(a).length - document.querySelectorAll(b).length);
     return SELECTORS[0];
 }
 
 async function deleteItems(deleteBatchSize) {
-    let deleteButtons = [];
-
+    // Compile list of available delete buttons (reversed order for delete
+    // BatchSize < 0; NOTE: '[...doc]' -> destructuring/unpack assignment)
     const bestSelector = determineBestSelector();
-    if (!deleteButtons.length) {
-        deleteButtons = [...document.querySelectorAll(bestSelector)]; //.reverse();
-    }
+    let deleteButtons = deleteBatchSize >= 0 ? [...document.querySelectorAll(bestSelector)] : [...document.querySelectorAll(bestSelector)].reverse();
+    deleteBatchSize = Math.abs(deleteBatchSize);
 
+    // Delete items
+    console.log('[YAC] Deleting ' + (deleteBatchSize === Infinity ? "ALL" : deleteBatchSize) + ' item(s)...');
     let count = 0;
+    while ((deleteButtons.length > 0) && (count < deleteBatchSize || deleteBatchSize === Infinity)) {
+        // Fetch and remove next delete button from end of list
+        const button = deleteButtons.pop();
 
-    while (deleteButtons.length && (count < deleteBatchSize || deleteBatchSize === Infinity)) {
-        const btn = deleteButtons.pop();
+        // Scroll button into view, pause to allow scroll to finish
+        button.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        await sleep(1000);
 
-        // Scroll to the button to make it visible before deletion
-        btn.scrollIntoView({
-            behavior: 'smooth',
-            block: 'center'
-        });
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Give a moment for the scroll to finish
+        // Highlight delete button (light red), pause to allow highlight
+        // to be visible, clear highlight, pause again
+        button.style.backgroundColor = '#ffcccc';
+        await sleep(1000);
+        button.style.backgroundColor = '';
+        await sleep(1000);
 
-        highlightElement(btn);                                   // Highlight delete button (will last for 1s)
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for 2s for the highlight to be visible
-
-        btn.click();                                             // Click delete button
+        // Click delete button, pause to allow deletion to finish (NOTE:
+        // disable the following line for testing!)
+        button.click();
         count++;
-        await new Promise(resolve => setTimeout(resolve, 1500)); // Wait for deletion to be performed/completed
+        await sleep(1500);
     }
 
-    return deleteButtons.length; // Return the number of remaining items
+    // Return number of remaining items
+    return deleteButtons.length;
 }
 
 async function initiateItemDeletion() {
-    if (!ensureOnCorrectActivityPage()) {
+    // Check if current page is a supported activity page
+    console.log('[YAC] Checking if current page is a supported activity page...');
+    if (!checkIfPageIsSupported()) {
         return;
     }
 
-    await scrollToBottom();
+    // Scroll to bottom of page (repeatedly if necessary, until ALL items are
+    // loaded and listed)
+    console.log('[YAC] Scrolling to bottom of page to load/list all items...');
+    while (!document.evaluate('//div[contains(text(), "Looks like you\'ve reached the end")] | //p[contains(text(), "No activity.")]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue) {
+        window.scrollTo(0, document.body.scrollHeight);
+        await sleep(1000);
+    }
 
+    // Determine number of items available for deletion, abort if none found
+    console.log('[YAC] Determining number of items available for deletion...');
     const bestSelector = determineBestSelector();
     const totalItems = document.querySelectorAll(bestSelector).length;
-
-    if (!totalItems) {
+    if (totalItems <= 0) {
         console.log('[YAC] No items found for deletion.');
         alert('No items found for deletion.');
         return;
     }
 
-    let userInput = prompt(`Found ${totalItems} items. Enter 'a' to delete all items or input a number to delete that many items. Press 'Cancel' at any time to stop the script:`);
+    // Prompt user to specify amount of items to delete (NOTE: prompt returns
+    // null when user hits 'Cancel')
+    console.log('[YAC] Prompting user to specify amount of items to delete...');
+    let userInput = prompt(`Found ${totalItems} items. Enter 'a' to delete ALL items or specify the number of items to delete (from oldest to newest; prefix with '-' to reverse order of deletion):`);
 
+    // Evaluate user input and perform item deletion accordingly
     while (userInput !== null) {
-        if (userInput.toLowerCase() === 'a') {
+        if (userInput.toLowerCase() === 'a') {            // Delete ALL items (from oldest to newest)
             await deleteItems(Infinity);
             console.log('[YAC] All items deleted.');
             return;
-        } else if (!isNaN(parseInt(userInput))) {
-            const deleteBatchSize = parseInt(userInput);
+        } else if (userInput.toLowerCase() === '-a') {    // Delete ALL items (from newest to oldest)
+            await deleteItems(-Infinity);
+            console.log('[YAC] All items deleted.');
+            return;
+        } else if (/^-?[0-9]+$/.test(userInput)) {        // Delete n items (order depends on sign)
+            const deleteBatchSize = parseInt(userInput, 10);
             const remainingItems = await deleteItems(deleteBatchSize);
-
-            if (!remainingItems) {
+            if (remainingItems <= 0) {
                 console.log('[YAC] All items deleted.');
                 return;
             }
-
-            userInput = prompt(`${remainingItems} items remaining. Enter 'a' to delete all remaining items or input a number to delete that many items. Press 'Cancel' at any time to stop the script:`);
+            userInput = prompt(`${remainingItems} items remaining. Enter 'a' to delete ALL remaining items or specify the number of remaining items to delete (from oldest to newest; prefix with '-' to reverse order of deletion):`);
         } else {
-            userInput = prompt('Invalid input. Please enter \'a\' or a number:');
+            userInput = prompt('Invalid input. Please enter \'a\' or a number (hit \'Cancel\' to abort):');
         }
     }
 
-    console.log('[YAC] Operation canceled. No further items will be deleted.');
+    // Only reached if user hit 'Cancel' when being prompted above
+    console.log('[YAC] Deletion aborted by user request.');
 }
 
+// Main entry point
 initiateItemDeletion();

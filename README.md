@@ -26,7 +26,7 @@ help me achieve that goal and are highly appreciated.
 
 ## Usage
 
-1. Sign in to your Google account (e.g. via [https://myactivity.google.com](https://myactivity.google.com))
+1. Sign in to your Google account (e.g. via [https://myactivity.google.com](https://myactivity.google.com?hl=en))
 
 2. Navigate to one of the following supported YouTube-related activity pages:
    - [Your YouTube Comments](https://myactivity.google.com/page?hl=en&page=youtube_comments)
